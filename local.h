@@ -8,6 +8,7 @@
 #include<unistd.h>
 #include<string.h>
 #include<wait.h>
+#include <sys/sem.h>
 
 #define NUMBER_OF_DOCTORS 10
 #define FORK_NEW_PATIENT  5
@@ -19,8 +20,16 @@
 #define HEART_RESP        0
 #define PATIENT_AGE       0
 
+#define MAX_RETRIES 10
+
+union semun {
+    int val;               /* used for SETVAL only */
+    struct semid_ds *buf;  /* used for IPC_STAT and IPC_SET */
+    ushort *array;         /* used for GETALL and SETALL */
+};
 
 typedef struct memstruct{
+	int front;
 	int doctors[NUMBER_OF_DOCTORS];
 	int patients[MAX_PATIENTS];
 } memory;
