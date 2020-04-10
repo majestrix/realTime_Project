@@ -1,35 +1,26 @@
-#include<stdio.h>
-#include<sys/ipc.h>
-#include<sys/shm.h>
-#include<sys/types.h>
-#include<string.h>
-#include<errno.h>
-#include<stdlib.h>
-#include<unistd.h>
-#include<string.h>
-
-typedef struct memstruct{
-	int a1[10];
-	int a2[10];
-} memory;
+#include "local.h"
 
 int main ( int argc, char *argv[] )
 {
-	int shmid,i;
+	int    shmid,i;
 	memory *mp;
-	if( (shmid = shmget(0x1234,sizeof(memory), 0666|IPC_CREAT) ) == -1)
+	
+	if(argc != 2)
 	{
-		perror("doctor -- shmget");
+		printf("Usage ./doctor [memory id]\n");
 		return 99;
 	}
+	shmid = atoi(argv[1]);
 	if( ( mp = shmat(shmid, NULL, 0) ) == (void*) -1)
 	{
 		perror("doctor -- shmat");
 		return 98;
 	}
-	for(i=0;i<10;i++){
-		mp->a1[i] = i+100;
-		mp->a2[i] = 100-i;
+
+	for(i=0;i<10;i++){                      /* fill shmem arrays with 0-10 */
+		mp->doctors[i] = 100-i;
+		mp->patients[i] = 100+i;
 	}	
+
 	return EXIT_SUCCESS;
 }
