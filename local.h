@@ -25,3 +25,7 @@ typedef struct memstruct{
 	int patients[MAX_PATIENTS];
 } memory;
 
+typedef struct childstruct{
+	pid_t pid;
+	int status;
+} child;

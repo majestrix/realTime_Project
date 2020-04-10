@@ -17,10 +17,6 @@ int main ( int argc, char *argv[] )
 		return 98;
 	}
 
-	for(i=0;i<10;i++){                      /* fill shmem arrays with 0-10 */
-		mp->doctors[i] = 100-i;
-		mp->patients[i] = 100+i;
-	}	
-
+	printf ( "Child Pid: %d\n", getpid() );
 	return EXIT_SUCCESS;
 }
