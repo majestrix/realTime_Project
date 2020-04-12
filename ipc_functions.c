@@ -70,6 +70,7 @@ int initsem(key_t key, int nsems)  /* key from ftok() */
 /* lock() - locks the semaphore, blocking other processes */
 void lock(int semid, struct sembuf *sb, int semnum) {
 	/* lock the semaphore */
+	printf ( "Executing lock\n" );
 	sb->sem_num = semnum;
 	sb->sem_op = -1; /* allocate resource */
 	if (semop(semid, sb, 1) == -1) {

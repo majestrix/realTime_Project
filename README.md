@@ -41,7 +41,7 @@ more his/her severity increases.
 Task|Progress
 -|-
 Shared-Memory|✔️
-Semaphore|❌
+Semaphore|✔️
 Message Queue|❌
 Patient Generation|❌
 Doctor Generation|❌
@@ -52,7 +52,7 @@ Clean up|❌
 Task|Progress
 -|-
 Shared-Memory|✔️
-Semaphore|❌
+Semaphore|✔️
 Message Queue|❌
 Handling Patient|❌
 

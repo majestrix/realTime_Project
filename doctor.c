@@ -1,11 +1,12 @@
 #include "local.h"
+#include "ipc_functions.h"
 
 int main ( int argc, char *argv[] )
 {
-	int    shmid,semid,len;
-	char* str;
-	struct sembuf   sb;
-	memory *mp;
+	int           shmid,semid,len;
+	char*         str;
+	struct sembuf sb;
+	memory        *mp;
 
 	/* For some reason arguments are concatenated in argv1*/
 	len = strlen(argv[1]) - strlen(argv[2]);

@@ -1,6 +1,8 @@
 #include "local.h"
 #include "ipc_functions.h"
 
+void printShmem(memory *mp);
+
 int main ( int argc, char *argv[] )
 {
 	int             shmid,semid,i;
@@ -28,7 +30,7 @@ int main ( int argc, char *argv[] )
 	 *  SEMAPHORE INIT
 	 *-----------------------------------------------------------------------------*/
 
-	key = genKey('A');
+	key   = genKey('A');
 	semid = initsem(key, NUMBER_OF_DOCTORS);
 
 	/*-----------------------------------------------------------------------------
