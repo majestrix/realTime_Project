@@ -1,6 +1,4 @@
 #include "local.h"
-void lock(int semid, struct sembuf *sb, int semnum);
-void unlock(int semid, struct sembuf *sb, int semnum);
 
 int main ( int argc, char *argv[] )
 {
@@ -8,7 +6,8 @@ int main ( int argc, char *argv[] )
 	char* str;
 	struct sembuf   sb;
 	memory *mp;
-	
+
+	/* For some reason arguments are concatenated in argv1*/
 	len = strlen(argv[1]) - strlen(argv[2]);
 	str = malloc(sizeof(char) * len);
 	memcpy(str,argv[1],len);
@@ -30,29 +29,14 @@ int main ( int argc, char *argv[] )
 	lock(semid,&sb,getpid()%10);
 	mp->doctors[mp->front++] = getpid();
 	unlock(semid,&sb,getpid()%10);
-
+	
+	if( shmdt(mp) == -1)
+	{
+		perror("doctor -- shmem detach");
+		return EXIT_FAILURE;
+	}
+	
 	printf ( "Child Pid: %d\n", getpid() );
 	return EXIT_SUCCESS;
 }
 
-/* lock() - locks the semaphore, blocking other processes */
-void lock(int semid, struct sembuf *sb, int semnum) {
-	/* lock the semaphore */
-	sb->sem_num = semnum;
-	sb->sem_op = -1; /* allocate resource */
-	if (semop(semid, sb, 1) == -1) {
-		perror("semop");
-		exit(1);
-	}
-}
-
-/* unlock() - unlocks the semaphore, allowing access by other processes */
-void unlock(int semid, struct sembuf *sb, int semnum) {
-	/* unlock the semaphore */
-	sb->sem_num = semnum;
-	sb->sem_op = 1; /* free resource */
-	if (semop(semid, sb, 1) == -1) {
-		perror("semop");
-		exit(1);
-	}
-}
