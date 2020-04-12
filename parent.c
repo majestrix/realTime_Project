@@ -1,4 +1,5 @@
 #include "local.h"
+#include "queue.h"
 #include "ipc_functions.h"
 
 void printShmem(memory *mp);
@@ -74,11 +75,14 @@ int main ( int argc, char *argv[] )
 
 /* to print shared memor contents, effectively PIDS of doctors/patients*/
 void printShmem(memory *mp){
+	queue q = mp->patientQueue;
+	int qLen = queueSize(&q); 
 	for(int i = 0; i < NUMBER_OF_DOCTORS; i++)
 		printf("%d | ", mp->doctors[i]);
 	printf ( "\n" );
-	for(int i = 0; i < MAX_PATIENTS; i++)
-		printf("%d | ", mp->patients[i]);
+//	for(int i = 0; i < qLen; i++)
+//		printf("%d | ", mp->patientQueue[i]);
+	printQueue(&q);
 	printf ( "\n" );
 }
 

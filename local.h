@@ -1,3 +1,5 @@
+#ifndef  LOCAL_INC
+#define  LOCAL_INC
 #include<stdio.h>
 #include<sys/ipc.h>
 #include<sys/shm.h>
@@ -12,29 +14,31 @@
 
 #define NUMBER_OF_DOCTORS 10
 #define FORK_NEW_PATIENT  5
-#define MAX_PATIENTS      10
-#define COVID_19_FEVER    0
-#define COVID_19_COUGH    0
-#define COVID_19_BREATH   0
-#define BLOOD_HYPER       0
-#define HEART_RESP        0
-#define PATIENT_AGE       0
-
-#define MAX_RETRIES 10
+#define MAX_PATIENTS      100
+#define MAX_Q NUMBER_OF_DOCTORS * 2
 
 union semun {
-    int val;               /* used for SETVAL only */
-    struct semid_ds *buf;  /* used for IPC_STAT and IPC_SET */
-    ushort *array;         /* used for GETALL and SETALL */
+	int val;               /* used for SETVAL only */
+	struct semid_ds *buf;  /* used for IPC_STAT and IPC_SET */
+	ushort *array;         /* used for GETALL and SETALL */
 };
 
+
+typedef struct queueStruct 
+{ 
+	int front, rear,count;
+	int arr[MAX_Q]; 
+}queue; 
+
+
 typedef struct memstruct{
-	int front;
+	int doctorCount;                        /* to track doctors array */
 	int doctors[NUMBER_OF_DOCTORS];
-	int patients[MAX_PATIENTS];
-} memory;
+	queue patientQueue;                     /* array queue implementation */
+} memory;                                       /* since we don't know the number. */
 
 typedef struct childstruct{
 	pid_t pid;
 	int status;
 } child;
+#endif 

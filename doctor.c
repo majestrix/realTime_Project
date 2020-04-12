@@ -1,12 +1,13 @@
 #include "local.h"
 #include "ipc_functions.h"
+#include "queue.h"
 
 int main ( int argc, char *argv[] )
 {
 	int           shmid,semid,len;
 	char*         str;
-	struct sembuf sb;
 	memory        *mp;
+	struct sembuf sb;
 
 	/* For some reason arguments are concatenated in argv1*/
 	len = strlen(argv[1]) - strlen(argv[2]);
@@ -28,7 +29,7 @@ int main ( int argc, char *argv[] )
 
 	sb.sem_flg = SEM_UNDO;
 	lock(semid,&sb,getpid()%10);
-	mp->doctors[mp->front++] = getpid();
+	mp->doctors[mp->doctorCount++] = getpid();
 	unlock(semid,&sb,getpid()%10);
 	
 	if( shmdt(mp) == -1)

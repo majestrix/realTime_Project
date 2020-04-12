@@ -44,9 +44,9 @@ Shared-Memory|✔️
 Semaphore|✔️
 Message Queue|❌
 Patient Generation|❌
-Doctor Generation|❌
+Doctor Generation|✔️
 Monitor Children|❌
-Clean up|❌
+Clean up|✔️
 
 ### Doctor
 Task|Progress
@@ -59,6 +59,6 @@ Handling Patient|❌
 ### Patient
 Task|Progress
 -|-
-Semaphore|❌
+Semaphore|✔️
 Message Queue|❌
-Attribute Generation|❌
+Attribute Generation|✔️
