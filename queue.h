@@ -10,4 +10,5 @@ int insert(queue* q,int data);
 int removeData(queue* q);
 void initQueue(queue* q);
 void printQueue(queue* q);
+
 #endif

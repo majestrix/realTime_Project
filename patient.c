@@ -1,19 +1,19 @@
 #include "local.h"
 #include "ipc_functions.h"
 #include "queue.h"
-/* #define COVID_19_FEVER    0
- * #define COVID_19_COUGH    0
- * #define COVID_19_BREATH   0
- * #define BLOOD_HYPER       0
- * #define HEART_RESP        0
- * #define PATIENT_AGE       0
- */
+#include <unistd.h>
+#include <math.h>
+
 int generateNumber (int low, int high);
 int isSevere(int num);
+int healthCondition(int s, int pid);
+int healthSeverity(int fever,int cough,int breath ,int hyper,int heart,int cancer);
+int ageSeverity(int age);
 
 int main ( int argc, char *argv[] )
 {
 	int           shmid,semid,len;
+	int           severity = 0, health=1;
 	char*         str;
 	memory        *mp;
 	struct sembuf sb;
@@ -23,6 +23,7 @@ int main ( int argc, char *argv[] )
 	int breath = isSevere( generateNumber(0,8) );
 	int hyper  = isSevere( generateNumber(0,8) );
 	int heart  = isSevere( generateNumber(0,8) );
+	int cancer = isSevere( generateNumber(0,8) );
 	int age    = generateNumber(10,110);
 
 
@@ -44,18 +45,38 @@ int main ( int argc, char *argv[] )
 		perror("patient -- shmat");
 		return EXIT_FAILURE;
 	}
+	
 
-	/* Patient code here*/
+	/* Enqueue patient */
+	printf ( "Patient writing\n" );
 	sb.sem_flg = SEM_UNDO;
-	lock(semid,&sb,getpid()%10);
-	insert( &( mp->patientQueue ),getpid() );
-	unlock(semid,&sb,getpid()%10);
+	lock(semid,&sb,1);
+	insert(&(mp->patientQueue) ,getpid() ); 
+	unlock(semid,&sb,1);
+
+	/* Initial severity */
+	severity  = healthSeverity(fever,cough,breath,hyper,heart,cancer);
+	severity += ageSeverity(age);
+
+	/* Monitor health */
+//	while(1){
+//	       /* Wait for doctor signal and break */
+//	       /* or Increment severity every 1sec */
+//		health = healthCondition(severity++,getpid());
+//		if(health == 0) break;
+//		sleep(1);
+//	}
+	
+       /* Doctor-Patient communication here */
 	
 	if( shmdt(mp) == -1)
 	{
 		perror("doctor -- shmem detach");
 		return EXIT_FAILURE;
 	}
+
+	if(health == 0)
+		return 10;
 	return EXIT_SUCCESS;
 }
 
@@ -67,4 +88,28 @@ int generateNumber (int low, int high)
 int isSevere(int num)
 {
 	return (num > 4) ? 1 : 0;
+}
+
+int ageSeverity(int age){
+	/* map age severity to exponential function 0-10 */
+	return floor( (age*age)/1100 );
+}
+
+int healthSeverity(int fever,int cough,int breath ,int hyper,int heart,int cancer)
+{
+	int severity=0;
+	severity = fever  == 1 ? severity+1 :  severity;
+	severity = cough  == 1 ? severity+1 :  severity;
+	severity = breath == 1 ? severity+1 :  severity;
+	severity = hyper  == 1 ? severity+1 :  severity;
+	severity = heart  == 1 ? severity+2 :  severity;
+	severity = cancer == 1 ? severity+3 :  severity;
+	return severity;
+}
+
+int healthCondition(int s, int pid){
+	if (s > 15 ){
+		return 0;
+	}
+	return 1;
 }

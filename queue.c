@@ -58,17 +58,10 @@ void printQueue(queue* q){
 	if(isEmpty(q))
 		printf ( "Queue empty.\n" );
 	else{
-		for (int i = q->front ;i < q->rear ; i++)
+		for (int i = q->front ;i <= q->rear ; i++)
 			printf("%d | ",q->arr[i]);
 	}
 	return;
 }
-
-
-
-
-
-
-
 
 

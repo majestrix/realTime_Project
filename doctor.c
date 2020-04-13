@@ -28,9 +28,9 @@ int main ( int argc, char *argv[] )
 	}
 
 	sb.sem_flg = SEM_UNDO;
-	lock(semid,&sb,getpid()%10);
+	lock(semid,&sb,0);
 	mp->doctors[mp->doctorCount++] = getpid();
-	unlock(semid,&sb,getpid()%10);
+	unlock(semid,&sb,0);
 	
 	if( shmdt(mp) == -1)
 	{
@@ -38,7 +38,6 @@ int main ( int argc, char *argv[] )
 		return EXIT_FAILURE;
 	}
 	
-	printf ( "Child Pid: %d\n", getpid() );
 	return EXIT_SUCCESS;
 }
 

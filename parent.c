@@ -2,19 +2,21 @@
 #include "queue.h"
 #include "ipc_functions.h"
 
-void printShmem(memory *mp);
 
 int main ( int argc, char *argv[] )
 {
-	int             shmid,semid,i;
-	int   	        status = 0;
-	key_t           key;
-	child           doctors[NUMBER_OF_DOCTORS];
-	memory          *mp;
+	int    shmid,semid,i;
+	int    status = 0;
+	key_t  key;
+	child  doctors[NUMBER_OF_DOCTORS];
+	pid_t  fork_returnVal;
+	memory *mp;
+
 
 	/*-----------------------------------------------------------------------------
 	 *  SHARED MEMORY INIT
 	 *-----------------------------------------------------------------------------*/
+
 	if( (shmid = shmget(0x1234, sizeof(memory), 0666|IPC_CREAT)) == -1)
 	{
 		perror("parent -- shmgt");
@@ -30,35 +32,61 @@ int main ( int argc, char *argv[] )
 	/*-----------------------------------------------------------------------------
 	 *  SEMAPHORE INIT
 	 *-----------------------------------------------------------------------------*/
-
-	key   = genKey('A');
-	semid = initsem(key, NUMBER_OF_DOCTORS);
+                                                /* two semaphores */
+	key   = genKey('A');                    /* atomic read&write */
+	semid = initsem(key, 2);                /* for both doctor&patient */
 
 	/*-----------------------------------------------------------------------------
-	 *  INIT FORKS
+	 *  INIT FORKS & Q
 	 *-----------------------------------------------------------------------------*/
+
+	initQueue(&(mp->patientQueue));
+
 	for(i = 0; i < NUMBER_OF_DOCTORS; i++){
 
 		if( (doctors[i].pid = fork() ) == -1){
-			perror("parent -- fork");
+			perror("parent -- fork doctor");
 			return EXIT_FAILURE;
 		}else if(doctors[i].pid == 0){
 			char shmtxt[5],semtxt[5];
 			sprintf(shmtxt,"%d",shmid);
 			sprintf(semtxt,"%d",semid);
 			execlp("./doctor","./doctor",shmtxt,semtxt,(char*)NULL);
-			perror("parent -- exec");
+			perror("parent -- exec doctor");
 			return EXIT_FAILURE;
 		}
 	}
 
+	for(i = 0; i < 5; i++){
+		if((fork_returnVal = fork()) == -1){
+			perror("parent -- fork patient");
+			return EXIT_FAILURE;
+	        }else if(fork_returnVal == 0){
+			char shmtxt[5],semtxt[5];
+			sprintf(shmtxt,"%d",shmid);
+			sprintf(semtxt,"%d",semid);
+			execlp("./patient","./patient",shmtxt,semtxt,(char*)NULL);
+			perror("parent -- exec patient");
+			return EXIT_FAILURE;
+		
+		}
+	
+	}
+
+
+
 	/*-----------------------------------------------------------------------------
 	 *  PARENT CODE
 	 *-----------------------------------------------------------------------------*/
+
 	while( wait(&status) > 0);
 	
 	printf("Contents of sharedmemory:\n");
 	printShmem(mp);
+
+	/*-----------------------------------------------------------------------------
+	 *  Delete IPCS
+	 *-----------------------------------------------------------------------------*/
 
 	if(shmctl(shmid, IPC_RMID, (struct shmid_ds *) 0) == -1 ){
 		perror("parent -- remove shm");
@@ -72,17 +100,4 @@ int main ( int argc, char *argv[] )
 	return EXIT_SUCCESS;
 }
 
-
-/* to print shared memor contents, effectively PIDS of doctors/patients*/
-void printShmem(memory *mp){
-	queue q = mp->patientQueue;
-	int qLen = queueSize(&q); 
-	for(int i = 0; i < NUMBER_OF_DOCTORS; i++)
-		printf("%d | ", mp->doctors[i]);
-	printf ( "\n" );
-//	for(int i = 0; i < qLen; i++)
-//		printf("%d | ", mp->patientQueue[i]);
-	printQueue(&q);
-	printf ( "\n" );
-}
 

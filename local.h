@@ -1,20 +1,20 @@
 #ifndef  LOCAL_INC
 #define  LOCAL_INC
-#include<stdio.h>
-#include<sys/ipc.h>
-#include<sys/shm.h>
-#include<sys/types.h>
-#include<string.h>
-#include<errno.h>
-#include<stdlib.h>
-#include<unistd.h>
-#include<string.h>
-#include<wait.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <string.h>
+#include <errno.h>
+#include <unistd.h>
+#include <string.h>
+#include <wait.h>
 #include <sys/sem.h>
 
-#define NUMBER_OF_DOCTORS 10
-#define FORK_NEW_PATIENT  5
-#define MAX_PATIENTS      100
+#define NUMBER_OF_DOCTORS         10
+#define FORK_NEW_PATIENT          5
+#define MAX_PATIENTS              100
 #define MAX_Q NUMBER_OF_DOCTORS * 2
 
 union semun {

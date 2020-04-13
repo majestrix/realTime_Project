@@ -88,3 +88,14 @@ void unlock(int semid, struct sembuf *sb, int semnum){
 		exit(1);
 	}
 }
+
+/* to print shared memor contents, effectively PIDS of doctors/patients*/
+void printShmem(memory *mp){
+	queue q = mp->patientQueue;
+	for(int i = 0; i < NUMBER_OF_DOCTORS; i++)
+		printf("%d | ", mp->doctors[i]);
+	printf ( "\n" );
+	printQueue(&q);
+	printf ( "\n" );
+}
+
