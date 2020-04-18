@@ -43,7 +43,7 @@ int removeData(queue* q) {
 	if(front == MAX_Q) {
 		q->front = 0;
 	}
-	q->count++;
+	q->count--;
 	return data;  
 }
 

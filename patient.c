@@ -10,13 +10,16 @@ int healthCondition(int s, int pid);
 int healthSeverity(int fever,int cough,int breath ,int hyper,int heart,int cancer);
 int ageSeverity(int age);
 
+int signal_rcvd = 0;
+
 int main ( int argc, char *argv[] )
 {
-	int           shmid,semid,len;
-	int           severity = 0, health=1;
-	char*         str;
-	memory        *mp;
+	int    shmid,semid;
+	int    severity = 0, health=1;
+	char*  tok;
+	memory *mp;
 	struct sembuf sb;
+	struct msgbuf buf;
 
 	int fever  = isSevere( generateNumber(0,8) );
 	int cough  = isSevere( generateNumber(0,8) );
@@ -28,27 +31,29 @@ int main ( int argc, char *argv[] )
 
 
 	/* For some reason arguments are concatenated in argv1*/
-	len = strlen(argv[1]) - strlen(argv[2]);
-	str = malloc(sizeof(char) * len);
-	memcpy(str,argv[1],len);
-	shmid = atoi(str);
-	semid = atoi(argv[2]);
+	tok   = strtok(argv[1]," ");
+	shmid = atoi(tok);
+	tok   = strtok(NULL," ");
+	semid = atoi(tok);
 
-	if(argc != 3)
+	if(argc != 2)
 	{
 		printf("Usage ./patient [memory id] [semaphore id]\n");
 		return EXIT_FAILURE;
 	}
-
+	/* Attach Memory */
 	if( ( mp = shmat(shmid, NULL, 0) ) == (void*) -1)
 	{
 		perror("patient -- shmat");
 		return EXIT_FAILURE;
 	}
-	
+	/* Change signal displacement */
+	if ( sigset(SIGUSR1, signal_catcher) == SIG_ERR ) {
+		perror("Sigset can not set SIGUSR1");
+		return EXIT_FAILURE;
+	}
 
 	/* Enqueue patient */
-	printf ( "Patient writing\n" );
 	sb.sem_flg = SEM_UNDO;
 	lock(semid,&sb,1);
 	insert(&(mp->patientQueue) ,getpid() ); 
@@ -58,25 +63,35 @@ int main ( int argc, char *argv[] )
 	severity  = healthSeverity(fever,cough,breath,hyper,heart,cancer);
 	severity += ageSeverity(age);
 
-	/* Monitor health */
-//	while(1){
-//	       /* Wait for doctor signal and break */
-//	       /* or Increment severity every 1sec */
-//		health = healthCondition(severity++,getpid());
-//		if(health == 0) break;
-//		sleep(1);
-//	}
-	
-       /* Doctor-Patient communication here */
-	
+	/* Wait for signal */
+	while(1){
+		while(!signal_rcvd){
+			/* Wait for doctor signal and break */
+			/* or Increment severity every 1sec */
+			health = healthCondition(severity++,getpid());
+			if(health == 0) return 10; /* Dead:( */
+			sleep(1);
+		}
+		/* Signal Recieved! */
+		/* Communicate with Doctor */
+		sprintf(buf.mtext,"%d",severity);
+		buf.mtype = 1;
+		len = strlen(buf.mtext);
+		msqid = /* Find who sent the signal */
+		if (msgsnd(msqid, &buf, len+1, 0) == -1) /* +1 for '\0' */
+			perror("msgsnd");
+
+		/* Logic Here... */
+		/* THIS IS TEMPRORARY! */
+		break;
+	}
+
 	if( shmdt(mp) == -1)
 	{
 		perror("doctor -- shmem detach");
 		return EXIT_FAILURE;
 	}
 
-	if(health == 0)
-		return 10;
 	return EXIT_SUCCESS;
 }
 
@@ -112,4 +127,10 @@ int healthCondition(int s, int pid){
 		return 0;
 	}
 	return 1;
+}
+
+void signal_catcher(int the_sig)
+{
+	if (the_sig == SIGUSR1);
+	signal_rcvd = 1;
 }

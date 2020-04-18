@@ -2,7 +2,6 @@
 #define QUEUE_FUNCTIONS
 
 int peek(queue* q);
-int peek(queue* q);
 int isEmpty(queue* q);
 int isFull(queue* q);
 int queueSize(queue* q);

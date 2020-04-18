@@ -2,13 +2,12 @@
 #include "queue.h"
 #include "ipc_functions.h"
 
-
 int main ( int argc, char *argv[] )
 {
 	int    shmid,semid,i;
 	int    status = 0;
 	key_t  key;
-	child  doctors[NUMBER_OF_DOCTORS];
+	pid_t  doctors[NUMBER_OF_DOCTORS];
 	pid_t  fork_returnVal;
 	memory *mp;
 
@@ -40,39 +39,36 @@ int main ( int argc, char *argv[] )
 	 *  INIT FORKS & Q
 	 *-----------------------------------------------------------------------------*/
 
-	initQueue(&(mp->patientQueue));
+	initQueue(&(mp->patientQueue));         /* Queue implementation */
 
-	for(i = 0; i < NUMBER_OF_DOCTORS; i++){
-
-		if( (doctors[i].pid = fork() ) == -1){
-			perror("parent -- fork doctor");
-			return EXIT_FAILURE;
-		}else if(doctors[i].pid == 0){
-			char shmtxt[5],semtxt[5];
-			sprintf(shmtxt,"%d",shmid);
-			sprintf(semtxt,"%d",semid);
-			execlp("./doctor","./doctor",shmtxt,semtxt,(char*)NULL);
-			perror("parent -- exec doctor");
-			return EXIT_FAILURE;
-		}
-	}
-
-	for(i = 0; i < 5; i++){
+	/* THIS IS TEMPRORARY! */
+	for(i = 0; i < 1; i++){                 /* Fork Patients */
 		if((fork_returnVal = fork()) == -1){
 			perror("parent -- fork patient");
 			return EXIT_FAILURE;
 	        }else if(fork_returnVal == 0){
-			char shmtxt[5],semtxt[5];
-			sprintf(shmtxt,"%d",shmid);
-			sprintf(semtxt,"%d",semid);
-			execlp("./patient","./patient",shmtxt,semtxt,(char*)NULL);
+			char argtxt[15]={0};
+			sprintf(argtxt,"%d %d",shmid,semid);
+			execlp("./patient","./patient",argtxt,(char*)NULL);
 			perror("parent -- exec patient");
 			return EXIT_FAILURE;
 		
 		}
 	
 	}
+	for(i = 0; i < NUMBER_OF_DOCTORS; i++){ /* Fork doctors */
 
+		if( (doctors[i] = fork() ) == -1){
+			perror("parent -- fork doctor");
+			return EXIT_FAILURE;
+		}else if(doctors[i] == 0){
+			char argtxt[15]={0};
+			sprintf(argtxt,"%d %d",shmid,semid);
+			execlp("./doctor","./doctor",argtxt,(char*)NULL);
+			perror("parent -- exec doctor");
+			return EXIT_FAILURE;
+		}
+	}
 
 
 	/*-----------------------------------------------------------------------------

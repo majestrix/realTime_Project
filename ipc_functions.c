@@ -1,11 +1,12 @@
 #include "local.h"
+#include "queue.h"
 #include "ipc_functions.h"
 
 /* generate key for shmem/sem*/
-key_t genKey ( char key_id )
+key_t genKey ( int key_id )
 {
 	key_t key;
-	if ((key = ftok(".", 'J')) == -1) {
+	if ((key = ftok(".", key_id )) == -1) {
 		perror("ftok");
 		return -1;
 	}

@@ -2,18 +2,20 @@
 #define  LOCAL_INC
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/types.h>
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
 #include <wait.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/types.h>
 #include <sys/sem.h>
+#include <sys/msg.h>
 
 #define NUMBER_OF_DOCTORS         10
 #define FORK_NEW_PATIENT          5
+#define DOCTOR_SLEEP_TIME         2
 #define MAX_PATIENTS              100
 #define MAX_Q NUMBER_OF_DOCTORS * 2
 
@@ -33,12 +35,19 @@ typedef struct queueStruct
 
 typedef struct memstruct{
 	int doctorCount;                        /* to track doctors array */
-	int doctors[NUMBER_OF_DOCTORS];
+	doctor doctors[NUMBER_OF_DOCTORS];
 	queue patientQueue;                     /* array queue implementation */
 } memory;                                       /* since we don't know the number. */
 
-typedef struct childstruct{
+typedef struct doctorstruct{
 	pid_t pid;
-	int status;
-} child;
+	int   msgqid;
+	int   status;                           /* 1 for Busy */
+} doctor;
+
+struct msgbuf_struct { 
+    long mtype; 
+    char mtext[100]; 
+} msgbuf; 
+
 #endif 
