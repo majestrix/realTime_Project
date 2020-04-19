@@ -9,6 +9,7 @@ int main ( int argc, char *argv[] )
 	memory        *mp;
 	key_t         key;
 	struct sembuf sb;
+	struct msgbuf buf;
 
 	/* For some reason arguments are concatenated in argv1*/
 	tok   = strtok(argv[1]," ");
@@ -38,29 +39,37 @@ int main ( int argc, char *argv[] )
 	/* Push doctor msqid to Shared-Memory */
 	sb.sem_flg = SEM_UNDO;
 	lock(semid,&sb,0);
-	mp->doctors[mp->doctorCount].pid     = getpid(); /* So patient can find it */
+	mp->doctors[mp->doctorCount].pid      = getpid(); /* So patient can find it */
 	mp->doctors[mp->doctorCount++].msgqid = msgqid;
 	unlock(semid,&sb,0);
 
 	/* Doctor's Work :3*/
 	while(1){
-		if(!isEmpty( &(mp->patientQueue) ) ){
+		if( !isEmpty( &(mp->patientQueue) ) ){
+			lock(semid,&sb,1);
 			kill(removeData(&(mp->patientQueue)),SIGUSR1);
+			unlock(semid,&sb,1);
 			/* Recieve Symptoms */
+			printf("Rcv from patient\n");
 			if (msgrcv(msgqid, &buf, sizeof(buf.mtext), 0, 0) == -1) {
 				perror("msgrcv");
 				return EXIT_FAILURE;
 			}
-			//	printf("\n%s\n", buf.mtext);
-			printf("%d:Queue is not empty, Work!\n",getpid());
+			printf("\nseverity received is, %d \n",atoi(buf.mtext));
+			if (atoi(buf.mtext) > 15){
+				printf("\nPatient's case is hopeless...\n");
+//				kill(removeData(&(mp->patientQueue)),SIGKILL);
+			}
+			else {
+				printf("\nPatient is recovered...\n");
+				break;
+			}
 		}
 		else{
 			printf("%d:Queue is empty, zZzZz\n",getpid());
-			sleep(DOCTOR_SLEEP_TIME);
+//			sleep(DOCTOR_SLEEP_TIME);
+			break;
 		}
-
-		/* THIS IS TEMPRORARY! */
-		break;
 	}
 
 	/* Delete Stuff */

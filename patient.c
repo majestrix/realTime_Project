@@ -9,17 +9,21 @@ int isSevere(int num);
 int healthCondition(int s, int pid);
 int healthSeverity(int fever,int cough,int breath ,int hyper,int heart,int cancer);
 int ageSeverity(int age);
+void signal_catcher(int sig, siginfo_t *si, void *ucontext);
+int findDoctorByPid(pid_t pid,memory* mp);
 
-int signal_rcvd = 0;
+int   signal_rcvd = 0;
+pid_t signal_pid;
 
 int main ( int argc, char *argv[] )
 {
-	int    shmid,semid;
+	int    shmid,semid,msgqid,len;
 	int    severity = 0, health=1;
 	char*  tok;
 	memory *mp;
 	struct sembuf sb;
 	struct msgbuf buf;
+	struct sigaction act;
 
 	int fever  = isSevere( generateNumber(0,8) );
 	int cough  = isSevere( generateNumber(0,8) );
@@ -48,11 +52,12 @@ int main ( int argc, char *argv[] )
 		return EXIT_FAILURE;
 	}
 	/* Change signal displacement */
-	if ( sigset(SIGUSR1, signal_catcher) == SIG_ERR ) {
-		perror("Sigset can not set SIGUSR1");
+	act.sa_sigaction = *signal_catcher;
+	act.sa_flags     = SA_SIGINFO;
+	if(sigaction(SIGUSR1,&act,NULL) != 0){
+		perror("sig init -- patient");
 		return EXIT_FAILURE;
 	}
-
 	/* Enqueue patient */
 	sb.sem_flg = SEM_UNDO;
 	lock(semid,&sb,1);
@@ -69,7 +74,7 @@ int main ( int argc, char *argv[] )
 			/* Wait for doctor signal and break */
 			/* or Increment severity every 1sec */
 			health = healthCondition(severity++,getpid());
-			if(health == 0) return 10; /* Dead:( */
+			if(health == 0) return PATIENT_DIED; /* Dead:( */
 			sleep(1);
 		}
 		/* Signal Recieved! */
@@ -77,9 +82,13 @@ int main ( int argc, char *argv[] )
 		sprintf(buf.mtext,"%d",severity);
 		buf.mtype = 1;
 		len = strlen(buf.mtext);
-		msqid = /* Find who sent the signal */
-		if (msgsnd(msqid, &buf, len+1, 0) == -1) /* +1 for '\0' */
-			perror("msgsnd");
+		msgqid = findDoctorByPid(signal_pid,mp);
+		if(msgqid == 0)
+			printf("something's wrong fuck c:\n");
+		printf("Sending from patient\n");
+		if (msgsnd(msgqid, &buf, len+1, 0) == -1) /* +1 for '\0' */
+			perror("msgsnd -- patient");
+		printf("Done Sending\n");
 
 		/* Logic Here... */
 		/* THIS IS TEMPRORARY! */
@@ -129,8 +138,24 @@ int healthCondition(int s, int pid){
 	return 1;
 }
 
-void signal_catcher(int the_sig)
+void signal_catcher(int sig, siginfo_t *si, void *ucontext)
 {
-	if (the_sig == SIGUSR1);
-	signal_rcvd = 1;
+	if (sig == SIGUSR1){
+		signal_rcvd = 1;
+		signal_pid = si->si_pid;
+		printf("SIGNAL SENT BY: %d\n"
+				"RECIEVED BY:%d\n",signal_pid,getpid());
+	}
+	return;
+}
+
+int findDoctorByPid(pid_t pid,memory* mp){
+	for(int i=0; i < NUMBER_OF_DOCTORS; i++){
+		if(mp->doctors[i].pid == pid)
+		{
+			mp->doctors[i].status = 1;
+			return i;
+		}
+	}
+	return 0;
 }

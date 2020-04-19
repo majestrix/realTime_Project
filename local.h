@@ -19,25 +19,20 @@
 #define MAX_PATIENTS              100
 #define MAX_Q NUMBER_OF_DOCTORS * 2
 
+#define PATIENT_DIED              10
+#define PATIENT_RECOVERED         20
+
 union semun {
 	int val;               /* used for SETVAL only */
 	struct semid_ds *buf;  /* used for IPC_STAT and IPC_SET */
 	ushort *array;         /* used for GETALL and SETALL */
 };
 
-
 typedef struct queueStruct 
 { 
 	int front, rear,count;
 	int arr[MAX_Q]; 
-}queue; 
-
-
-typedef struct memstruct{
-	int doctorCount;                        /* to track doctors array */
-	doctor doctors[NUMBER_OF_DOCTORS];
-	queue patientQueue;                     /* array queue implementation */
-} memory;                                       /* since we don't know the number. */
+} queue; 
 
 typedef struct doctorstruct{
 	pid_t pid;
@@ -45,9 +40,16 @@ typedef struct doctorstruct{
 	int   status;                           /* 1 for Busy */
 } doctor;
 
-struct msgbuf_struct { 
+typedef struct memstruct{
+	int doctorCount;                        /* to track doctors array */
+	doctor doctors[NUMBER_OF_DOCTORS];
+	queue patientQueue;                     /* array queue implementation */
+} memory;                                       /* since we don't know the number. */
+
+
+struct msgbuf{ 
     long mtype; 
     char mtext[100]; 
-} msgbuf; 
+}; 
 
 #endif 
