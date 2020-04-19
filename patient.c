@@ -67,6 +67,7 @@ int main ( int argc, char *argv[] )
 	/* Initial severity */
 	severity  = healthSeverity(fever,cough,breath,hyper,heart,cancer);
 	severity += ageSeverity(age);
+	health = healthCondition(severity,getpid());
 
 	/* Wait for signal */
 	while(1){
@@ -74,7 +75,11 @@ int main ( int argc, char *argv[] )
 			/* Wait for doctor signal and break */
 			/* or Increment severity every 1sec */
 			health = healthCondition(severity++,getpid());
-			if(health == 0) return PATIENT_DIED; /* Dead:( */
+			if(health == 0)
+			{
+				printf("Patient Died!");
+				return PATIENT_DIED; 
+			}
 			sleep(1);
 		}
 		/* Signal Recieved! */
@@ -83,12 +88,8 @@ int main ( int argc, char *argv[] )
 		buf.mtype = 1;
 		len = strlen(buf.mtext);
 		msgqid = findDoctorByPid(signal_pid,mp);
-		if(msgqid == 0)
-			printf("something's wrong fuck c:\n");
-		printf("Sending from patient\n");
 		if (msgsnd(msgqid, &buf, len+1, 0) == -1) /* +1 for '\0' */
 			perror("msgsnd -- patient");
-		printf("Done Sending\n");
 
 		/* Logic Here... */
 		/* THIS IS TEMPRORARY! */
@@ -154,7 +155,7 @@ int findDoctorByPid(pid_t pid,memory* mp){
 		if(mp->doctors[i].pid == pid)
 		{
 			mp->doctors[i].status = 1;
-			return i;
+			return mp->doctors[i].msgqid;
 		}
 	}
 	return 0;

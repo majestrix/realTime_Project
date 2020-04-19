@@ -65,11 +65,10 @@ int main ( int argc, char *argv[] )
 				break;
 			}
 		}
-		else{
-			printf("%d:Queue is empty, zZzZz\n",getpid());
-//			sleep(DOCTOR_SLEEP_TIME);
-			break;
-		}
+//		else{
+//			printf("%d:Queue is empty, zZzZz\n",getpid());
+////			sleep(DOCTOR_SLEEP_TIME);
+//		}
 	}
 
 	/* Delete Stuff */

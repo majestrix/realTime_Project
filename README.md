@@ -42,7 +42,6 @@ Task|Progress
 -|-
 Shared-Memory|✔️
 Semaphore|✔️
-Message Queue|❌
 Patient Generation|❌
 Doctor Generation|✔️
 Monitor Children|❌
@@ -53,12 +52,12 @@ Task|Progress
 -|-
 Shared-Memory|✔️
 Semaphore|✔️
-Message Queue|❌
+Message Queue|✔️
 Handling Patient|❌
 
 ### Patient
 Task|Progress
 -|-
 Semaphore|✔️
-Message Queue|❌
+Message Queue|✔️
 Attribute Generation|✔️

@@ -41,6 +41,20 @@ int main ( int argc, char *argv[] )
 
 	initQueue(&(mp->patientQueue));         /* Queue implementation */
 
+	for(i = 0; i < 1; i++){ /* Fork doctors */
+
+		if( (doctors[i] = fork() ) == -1){
+			perror("parent -- fork doctor");
+			return EXIT_FAILURE;
+		}else if(doctors[i] == 0){
+			char argtxt[15]={0};
+			sprintf(argtxt,"%d %d",shmid,semid);
+			execlp("./doctor","./doctor",argtxt,(char*)NULL);
+			perror("parent -- exec doctor");
+			return EXIT_FAILURE;
+		}
+	}
+
 	/* THIS IS TEMPRORARY! */
 	for(i = 0; i < 1; i++){                 /* Fork Patients */
 		if((fork_returnVal = fork()) == -1){
@@ -55,19 +69,6 @@ int main ( int argc, char *argv[] )
 		
 		}
 	
-	}
-	for(i = 0; i < NUMBER_OF_DOCTORS; i++){ /* Fork doctors */
-
-		if( (doctors[i] = fork() ) == -1){
-			perror("parent -- fork doctor");
-			return EXIT_FAILURE;
-		}else if(doctors[i] == 0){
-			char argtxt[15]={0};
-			sprintf(argtxt,"%d %d",shmid,semid);
-			execlp("./doctor","./doctor",argtxt,(char*)NULL);
-			perror("parent -- exec doctor");
-			return EXIT_FAILURE;
-		}
 	}
 
 
