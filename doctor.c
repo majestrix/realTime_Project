@@ -2,6 +2,10 @@
 #include "ipc_functions.h"
 #include "queue.h"
 
+int initDrCommunication(int msgqid, struct msgbuf* buf);
+int schedulePatient(int msgqid, struct msgbuf* buf);
+void treatPatient(int msqid, struct msgbuf* buf);
+
 int main ( int argc, char *argv[] )
 {
 	int           shmid,semid,msgqid;
@@ -46,23 +50,17 @@ int main ( int argc, char *argv[] )
 	/* Doctor's Work :3*/
 	while(1){
 		if( !isEmpty( &(mp->patientQueue) ) ){
+			int n;
 			lock(semid,&sb,1);
 			kill(removeData(&(mp->patientQueue)),SIGUSR1);
 			unlock(semid,&sb,1);
 			/* Recieve Symptoms */
-			printf("Rcv from patient\n");
-			if (msgrcv(msgqid, &buf, sizeof(buf.mtext), 0, 0) == -1) {
-				perror("msgrcv");
-				return EXIT_FAILURE;
-			}
-			printf("\nseverity received is, %d \n",atoi(buf.mtext));
-			if (atoi(buf.mtext) > 15){
-				printf("\nPatient's case is hopeless...\n");
-//				kill(removeData(&(mp->patientQueue)),SIGKILL);
-			}
-			else {
-				printf("\nPatient is recovered...\n");
-				break;
+			if ((n = initDrCommunication(msgqid, &buf)) != -1){ /* rcv imsick */
+				if(strncmp(buf.mtext,"imsick",n) == 0){
+					schedulePatient(msgqid, &buf); /* Send show-up */
+					treatPatient(msgqid, &buf);	
+					break;
+				}
 			}
 		}
 //		else{
@@ -85,3 +83,45 @@ int main ( int argc, char *argv[] )
 	return EXIT_SUCCESS;
 }
 
+int initDrCommunication(int msgqid, struct msgbuf* buf){
+	int res;
+	if( (res = msgrcv(msgqid,buf, sizeof(buf->mtext), 0, 0)) == -1){
+		perror("doctor -- msginit");
+	}
+	return res;
+}
+int schedulePatient(int msgqid, struct msgbuf* buf){
+	int res,len;
+	memset(&(buf->mtext),0,BUFF_SIZE*sizeof(char));
+	strcpy(buf->mtext,"show-up");
+	buf->mtype = 1;
+	len = strlen(buf->mtext);
+	res =  msgsnd(msgqid, buf, len+1, 0);
+	if(res == -1)
+	{
+		perror("patient -- msg init");
+		exit(EXIT_FAILURE);
+	}
+	return res;
+}
+void treatPatient(int msgqid, struct msgbuf* buf){
+	int len,localSeverity;
+	do{
+		if( msgrcv(msgqid,buf, sizeof(buf->mtext), 0, 0) == -1){
+			perror("doctor -- msginit");
+			exit(EXIT_FAILURE);
+		}
+		printf("%s\n",buf->mtext);
+		localSeverity = atoi(buf->mtext);
+		localSeverity--;
+		memset(&(buf->mtext),0,BUFF_SIZE*sizeof(char));
+		sprintf(buf->mtext,"%d",localSeverity);
+		buf->mtype = 1;
+		len = strlen(buf->mtext);
+		if(msgsnd(msgqid, buf, len+1, 0) == -1)
+		{
+			perror("patient -- sendseverity");
+			exit(EXIT_FAILURE);
+		}
+	}while(localSeverity);
+}

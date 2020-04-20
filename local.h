@@ -3,19 +3,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
 #include <wait.h>
+#include <unistd.h>
+#include <math.h>
+#include <time.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/types.h>
 #include <sys/sem.h>
 #include <sys/msg.h>
 
+#define BUFF_SIZE                 64
 #define NUMBER_OF_DOCTORS         10
 #define FORK_NEW_PATIENT          5
 #define DOCTOR_SLEEP_TIME         2
+#define PATIENT_WAIT_TIME         90
 #define MAX_PATIENTS              100
 #define MAX_Q NUMBER_OF_DOCTORS * 2
 
@@ -49,7 +55,7 @@ typedef struct memstruct{
 
 struct msgbuf{ 
     long mtype; 
-    char mtext[100]; 
+    char mtext[BUFF_SIZE]; 
 }; 
 
 #endif 
