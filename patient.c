@@ -83,7 +83,7 @@ int main ( int argc, char *argv[] )
 			status = healthCondition(severity++,getpid());
 			if(status == 0)
 			{
-				printf("Patient Died!");
+				printf("P:%d Died! -- Waited too long.\n",getpid());
 				status = PATIENT_DIED; 
 			}
 			sleep(1);
@@ -146,7 +146,7 @@ int waitForDr(int msgqid, struct msgbuf *buf){
 		{
 			if (msgrcv(msgqid, buf, sizeof(buf->mtext), 0, IPC_NOWAIT) != -1) {
 				terminate = 1;
-				printf("D:%d->P%d: %s\n",(int)signal_pid,(int)getpid(),buf->mtext);
+				printf("D:%d->P%d: %s\n",(int)signal_pid,(int)getpid(),"show-up");
 				return 1;
 			}
 		}

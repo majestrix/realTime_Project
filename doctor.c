@@ -5,6 +5,7 @@
 int initDrCommunication(int msgqid, struct msgbuf* buf);
 int schedulePatient(int msgqid, struct msgbuf* buf);
 void treatPatient(int msqid, struct msgbuf* buf);
+void makeMeAvailable(memory* mp);
 
 int main ( int argc, char *argv[] )
 {
@@ -58,15 +59,16 @@ int main ( int argc, char *argv[] )
 			if ((n = initDrCommunication(msgqid, &buf)) != -1){ /* rcv imsick */
 				if(strncmp(buf.mtext,"imsick",n) == 0){
 					schedulePatient(msgqid, &buf); /* Send show-up */
-					treatPatient(msgqid, &buf);	
-					break;
+					treatPatient(msgqid, &buf); /* Treat until recoved */
+					makeMeAvailable(mp); /* Look for another patient */
 				}
 			}
 		}
-//		else{
-//			printf("%d:Queue is empty, zZzZz\n",getpid());
-////			sleep(DOCTOR_SLEEP_TIME);
-//		}
+		else
+		{
+			printf("%d:Queue is empty,zZzZz\n",getpid());
+			sleep(DOCTOR_SLEEP_TIME);
+		}
 	}
 
 	/* Delete Stuff */
@@ -111,7 +113,6 @@ void treatPatient(int msgqid, struct msgbuf* buf){
 			perror("doctor -- msginit");
 			exit(EXIT_FAILURE);
 		}
-		printf("%s\n",buf->mtext);
 		localSeverity = atoi(buf->mtext);
 		localSeverity--;
 		memset(&(buf->mtext),0,BUFF_SIZE*sizeof(char));
@@ -124,4 +125,14 @@ void treatPatient(int msgqid, struct msgbuf* buf){
 			exit(EXIT_FAILURE);
 		}
 	}while(localSeverity);
+}
+void makeMeAvailable(memory* mp){
+	pid_t myPid = getpid();
+	for(int i=0; i<NUMBER_OF_DOCTORS;i++){
+		if(mp->doctors[i].pid == myPid)
+		{
+			mp->doctors[i].status = 0;
+			break;
+		}
+	}
 }

@@ -41,7 +41,7 @@ int main ( int argc, char *argv[] )
 
 	initQueue(&(mp->patientQueue));         /* Queue implementation */
 
-	for(i = 0; i < 1; i++){ /* Fork doctors */
+	for(i = 0; i < 2; i++){ /* Fork doctors */
 
 		if( (doctors[i] = fork() ) == -1){
 			perror("parent -- fork doctor");
@@ -56,7 +56,7 @@ int main ( int argc, char *argv[] )
 	}
 
 	/* THIS IS TEMPRORARY! */
-	for(i = 0; i < 1; i++){                 /* Fork Patients */
+	for(i = 0; i < 5; i++){                 /* Fork Patients */
 		if((fork_returnVal = fork()) == -1){
 			perror("parent -- fork patient");
 			return EXIT_FAILURE;
