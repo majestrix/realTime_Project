@@ -57,6 +57,7 @@ int main ( int argc, char *argv[] )
 			unlock(semid,&sb,1);
 			/* Recieve Symptoms */
 			if ((n = initDrCommunication(msgqid, &buf)) != -1){ /* rcv imsick */
+//				sleep();
 				if(strncmp(buf.mtext,"imsick",n) == 0){
 					schedulePatient(msgqid, &buf); /* Send show-up */
 					treatPatient(msgqid, &buf); /* Treat until recoved */

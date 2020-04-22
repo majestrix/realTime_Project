@@ -75,7 +75,12 @@ int main ( int argc, char *argv[] )
 	/*-----------------------------------------------------------------------------
 	 *  PARENT CODE
 	 *-----------------------------------------------------------------------------*/
-
+/* 
+ * 1. Fork using threads/with monitoring
+ * 2. Monitoring kollo ;-;
+ * 3. Parent exit (threshold/counters)
+ * 4. Sleep times
+ */
 	while( wait(&status) > 0);
 	
 	printf("Contents of sharedmemory:\n");

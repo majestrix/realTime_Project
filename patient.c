@@ -76,32 +76,35 @@ int main ( int argc, char *argv[] )
 	status = healthCondition(severity,getpid());
 
 	/* Wait for signal */
-	while(1){
-		while(!signal_rcvd){
-			/* Wait for doctor signal and break */
-			/* or Increment severity every 1sec */
-			status = healthCondition(severity++,getpid());
-			if(status == 0)
-			{
-				printf("P:%d Died! -- Waited too long.\n",getpid());
-				status = PATIENT_DIED; 
+	if(status == PATIENT_DIED)
+	{
+		while(1){
+			while(!signal_rcvd){
+				/* Wait for doctor signal and break */
+				/* or Increment severity every 1sec */
+				status = healthCondition(severity++,getpid());
+				if(status == 0)
+				{
+					printf("P:%d Died! -- Waited too long.\n",getpid());
+					status = PATIENT_DIED; 
+				}
+				sleep(1);
 			}
-			sleep(1);
-		}
-		/* Signal Recieved! */
-		/* Communicate with Doctor */
-		msgqid = findDoctorByPid(signal_pid,mp);
-		if( initDrCommunication(msgqid,&buf) != -1 ) /* Sends imsick */
-		{
-			/* die if Doctor took too long*/
-			if( (status = waitForDr(msgqid,&buf)) == PATIENT_DIED) /* Waits for show-up */
-				break;
-			else
+			/* Signal Recieved! */
+			/* Communicate with Doctor */
+			msgqid = findDoctorByPid(signal_pid,mp);
+			if( initDrCommunication(msgqid,&buf) != -1 ) /* Sends imsick */
 			{
-				if( acceptTreatment(msgqid,&buf,severity) == 0 ){
-					printf("P:%d Recovered!\n",(int)getpid());
-					status = PATIENT_RECOVERED;
+				/* die if Doctor took too long*/
+				if( (status = waitForDr(msgqid,&buf)) == PATIENT_DIED) /* Waits for show-up */
 					break;
+				else
+				{
+					if( acceptTreatment(msgqid,&buf,severity) == 0 ){
+						printf("P:%d Recovered!\n",(int)getpid());
+						status = PATIENT_RECOVERED;
+						break;
+					}
 				}
 			}
 		}
@@ -209,9 +212,9 @@ int healthSeverity(int fever,int cough,int breath ,int hyper,int heart,int cance
 
 int healthCondition(int s, int pid){
 	if (s > 15 ){
-		return 0;
+		return PATIENT_DIED;
 	}
-	return PATIENT_DIED;
+	return 0;
 }
 
 void signal_catcher(int sig, siginfo_t *si, void *ucontext)
@@ -231,6 +234,7 @@ void hopeless_signal(int sig){
 		exit(PATIENT_DIED);
 	}
 }
+
 int findDoctorByPid(pid_t pid,memory* mp){
 	for(int i=0; i < NUMBER_OF_DOCTORS; i++){
 		if(mp->doctors[i].pid == pid)

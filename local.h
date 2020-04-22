@@ -17,13 +17,13 @@
 #include <sys/sem.h>
 #include <sys/msg.h>
 
-#define BUFF_SIZE                 64
-#define NUMBER_OF_DOCTORS         10
-#define FORK_NEW_PATIENT          5
-#define DOCTOR_SLEEP_TIME         10
-#define PATIENT_WAIT_TIME         90
-#define MAX_PATIENTS              100
-#define MAX_Q NUMBER_OF_DOCTORS * 2
+#define BUFF_SIZE         64
+#define NUMBER_OF_DOCTORS 10
+#define FORK_NEW_PATIENT  5
+#define DOCTOR_SLEEP_TIME 10
+#define PATIENT_WAIT_TIME 90
+#define MAX_PATIENTS      100
+#define MAX_Q             500                   /* Depends on threshold */
 
 #define PATIENT_DIED              10
 #define PATIENT_RECOVERED         20
