@@ -1,0 +1,3 @@
+ipcrm -M 0x1234
+ipcrm --all=msg
+ipcrm --all=sem

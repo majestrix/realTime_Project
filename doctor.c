@@ -6,15 +6,19 @@ int initDrCommunication(int msgqid, struct msgbuf* buf);
 int schedulePatient(int msgqid, struct msgbuf* buf);
 void treatPatient(int msqid, struct msgbuf* buf);
 void makeMeAvailable(memory* mp);
+void signal_catcher(int sig);
+
+int signal_rcvd = 0;
 
 int main ( int argc, char *argv[] )
 {
-	int           shmid,semid,msgqid;
+	int           shmid,semid,msgqid,slept=0;
 	char*         tok;
 	memory        *mp;
 	key_t         key;
 	struct sembuf sb;
 	struct msgbuf buf;
+	struct sigaction act;
 
 	/* For some reason arguments are concatenated in argv1*/
 	tok   = strtok(argv[1]," ");
@@ -27,15 +31,23 @@ int main ( int argc, char *argv[] )
 		printf("Usage ./doctor [memory id] [semaphore id]\n");
 		return EXIT_FAILURE;
 	}
+
 	/* Attach Shared-Memory*/
 	if( ( mp = shmat(shmid, NULL, 0) ) == (void*) -1)
 	{
 		perror("doctor -- shmat");
 		return EXIT_FAILURE;
 	}
+
+	/* Change signal displacement */
+	act.sa_sigaction = *signal_catcher;
+	if(sigaction(SIGTERM,&act,NULL) != 0){
+		perror("sig init -- doc");
+		return EXIT_FAILURE;
+	}
+
 	/* Generate Message Q Key & Create */
 	key = genKey(getpid());
-
 	if ((msgqid = msgget(key, 0666 | IPC_CREAT)) == -1) {
 		perror("msgget");
 		return EXIT_FAILURE;
@@ -49,25 +61,29 @@ int main ( int argc, char *argv[] )
 	unlock(semid,&sb,0);
 
 	/* Doctor's Work :3*/
-	while(1){
+	while(!signal_rcvd && slept < 3){
+		lock(semid,&sb,1);
 		if( !isEmpty( &(mp->patientQueue) ) ){
 			int n;
-			lock(semid,&sb,1);
-			kill(removeData(&(mp->patientQueue)),SIGUSR1);
+			while( kill(removeData(&(mp->patientQueue)),SIGUSR1) == -1);
 			unlock(semid,&sb,1);
 			/* Recieve Symptoms */
 			if ((n = initDrCommunication(msgqid, &buf)) != -1){ /* rcv imsick */
-//				sleep();
+				sleep(DOCTOR_SLEEP_TIME);
 				if(strncmp(buf.mtext,"imsick",n) == 0){
 					schedulePatient(msgqid, &buf); /* Send show-up */
 					treatPatient(msgqid, &buf); /* Treat until recoved */
 					makeMeAvailable(mp); /* Look for another patient */
 				}
 			}
+			signal_rcvd = 0;
+			slept       = 0;
 		}
 		else
 		{
 			printf("%d:Queue is empty,zZzZz\n",getpid());
+			unlock(semid,&sb,1);
+			slept++;
 			sleep(DOCTOR_SLEEP_TIME);
 		}
 	}
@@ -111,7 +127,8 @@ void treatPatient(int msgqid, struct msgbuf* buf){
 	int len,localSeverity;
 	do{
 		if( msgrcv(msgqid,buf, sizeof(buf->mtext), 0, 0) == -1){
-			perror("doctor -- msginit");
+			perror("doctor -- treatmsginit");
+			printf("%d\n",errno);
 			exit(EXIT_FAILURE);
 		}
 		localSeverity = atoi(buf->mtext);
@@ -136,4 +153,12 @@ void makeMeAvailable(memory* mp){
 			break;
 		}
 	}
+}
+
+void signal_catcher(int sig)
+{
+	if (sig == SIGTERM){
+		signal_rcvd = 1;
+	}
+	return;
 }

@@ -42,17 +42,20 @@ int main ( int argc, char *argv[] )
 	tok   = strtok(NULL," ");
 	semid = atoi(tok);
 
+	printf("Patient %d\n",getpid());
 	if(argc != 2)
 	{
 		printf("Usage ./patient [memory id] [semaphore id]\n");
 		return EXIT_FAILURE;
 	}
+
 	/* Attach Memory */
 	if( ( mp = shmat(shmid, NULL, 0) ) == (void*) -1)
 	{
 		perror("patient -- shmat");
 		return EXIT_FAILURE;
 	}
+
 	/* Change signal displacement */
 	act.sa_sigaction = *signal_catcher;
 	act.sa_flags     = SA_SIGINFO;
@@ -60,10 +63,11 @@ int main ( int argc, char *argv[] )
 		perror("sig init1 -- patient");
 		return EXIT_FAILURE;
 	}
-//	if(sigset(SIGUSR2,hopeless_signal) == -1){
-//		perror("sig init2 -- patient");
-//		return EXIT_FAILURE;
-//	}
+	//	if(sigset(SIGUSR2,hopeless_signal) == -1){
+	//		perror("sig init2 -- patient");
+	//		return EXIT_FAILURE;
+	//	}
+	
 	/* Enqueue patient */
 	sb.sem_flg = SEM_UNDO;
 	lock(semid,&sb,1);
@@ -74,37 +78,44 @@ int main ( int argc, char *argv[] )
 	severity  = healthSeverity(fever,cough,breath,hyper,heart,cancer);
 	severity += ageSeverity(age);
 	status = healthCondition(severity,getpid());
-
-	/* Wait for signal */
 	if(status == PATIENT_DIED)
 	{
-		while(1){
-			while(!signal_rcvd){
-				/* Wait for doctor signal and break */
-				/* or Increment severity every 1sec */
-				status = healthCondition(severity++,getpid());
-				if(status == 0)
-				{
-					printf("P:%d Died! -- Waited too long.\n",getpid());
-					status = PATIENT_DIED; 
-				}
-				sleep(1);
-			}
-			/* Signal Recieved! */
-			/* Communicate with Doctor */
-			msgqid = findDoctorByPid(signal_pid,mp);
-			if( initDrCommunication(msgqid,&buf) != -1 ) /* Sends imsick */
+		printf("Hopeless case!\n");
+		return PATIENT_DIED;
+	}
+
+	/* Wait for signal */
+	while(1){
+		while(!signal_rcvd){
+			/* Wait for doctor signal and break */
+			/* or Increment severity every 1sec */
+			if(status == PATIENT_DIED)
 			{
-				/* die if Doctor took too long*/
-				if( (status = waitForDr(msgqid,&buf)) == PATIENT_DIED) /* Waits for show-up */
-					break;
-				else
+				printf("\033[0;31mP:%d Died! -- Waited too long.\033[0m\n",getpid());
+				if( shmdt(mp) == -1)
 				{
-					if( acceptTreatment(msgqid,&buf,severity) == 0 ){
-						printf("P:%d Recovered!\n",(int)getpid());
-						status = PATIENT_RECOVERED;
-						break;
-					}
+					perror("doctor -- shmem detach");
+					return EXIT_FAILURE;
+				}
+				return status;
+			}
+			status = healthCondition(severity++,getpid());
+			sleep(1);
+		}
+		/* Signal Recieved! */
+		/* Communicate with Doctor */
+		msgqid = findDoctorByPid(signal_pid,mp);
+		if( initDrCommunication(msgqid,&buf) != -1 ) /* Sends imsick */
+		{
+			/* die if Doctor took too long*/
+			if( (status = waitForDr(msgqid,&buf)) == PATIENT_DIED) /* Waits for show-up */
+				break;
+			else
+			{
+				if( acceptTreatment(msgqid,&buf,severity) == 0 ){
+					printf("\033[0;32mP:%d Recovered!\033[0m\n",(int)getpid());
+					status = PATIENT_RECOVERED;
+					break;
 				}
 			}
 		}
@@ -214,7 +225,7 @@ int healthCondition(int s, int pid){
 	if (s > 15 ){
 		return PATIENT_DIED;
 	}
-	return 0;
+	return 1;
 }
 
 void signal_catcher(int sig, siginfo_t *si, void *ucontext)
@@ -222,8 +233,7 @@ void signal_catcher(int sig, siginfo_t *si, void *ucontext)
 	if (sig == SIGUSR1){
 		signal_rcvd = 1;
 		signal_pid = si->si_pid;
-		printf("SIGNAL SENT BY: %d\n"
-				"RECIEVED BY:%d\n",signal_pid,getpid());
+		printf("D%d->P%d: SIGUSR1\n",signal_pid,getpid());
 	}
 	return;
 }

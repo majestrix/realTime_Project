@@ -3,12 +3,12 @@ doctorOBJS = doctor.o ipc_functions.o queue.o
 patientOBJS = patient.o ipc_functions.o queue.o
 EXE = doctor parent patient queue
 CFLAGS = -g -Wall   
-LDFLAGS = -g
+LDFLAGS = -g 
 
 all : parent doctor patient
 
 parent : $(parentOBJS)
-	cc -o $@ $(parentOBJS)
+	cc -o $@ $(parentOBJS) -lpthread
 
 doctor : $(doctorOBJS)
 	cc -o $@ $(doctorOBJS)
