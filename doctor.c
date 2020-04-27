@@ -5,6 +5,7 @@
 int initDrCommunication(int msgqid, struct msgbuf* buf);
 int schedulePatient(int msgqid, struct msgbuf* buf);
 void treatPatient(int msqid, struct msgbuf* buf);
+void acquirePatient(memory* mp, queue* q);
 void makeMeAvailable(memory* mp);
 void signal_catcher(int sig);
 
@@ -60,20 +61,22 @@ int main ( int argc, char *argv[] )
 	mp->doctors[mp->doctorCount++].msgqid = msgqid;
 	unlock(semid,&sb,0);
 
+	sleep(5);                              /* Patients head-start */
+
 	/* Doctor's Work :3*/
 	while(!signal_rcvd && slept < 3){
 		lock(semid,&sb,1);
 		if( !isEmpty( &(mp->patientQueue) ) ){
 			int n;
-			while( kill(removeData(&(mp->patientQueue)),SIGUSR1) == -1);
+			acquirePatient(mp, &(mp->patientQueue) );
 			unlock(semid,&sb,1);
 			/* Recieve Symptoms */
-			if ((n = initDrCommunication(msgqid, &buf)) != -1){ /* rcv imsick */
+			if ((n = initDrCommunication(msgqid, &buf)) != -1){          /* rcv imsick */
 				sleep(DOCTOR_SLEEP_TIME);
-				if(strncmp(buf.mtext,"imsick",n) == 0){
-					schedulePatient(msgqid, &buf); /* Send show-up */
-					treatPatient(msgqid, &buf); /* Treat until recoved */
-					makeMeAvailable(mp); /* Look for another patient */
+				if(strncmp(buf.mtext,"imsick",n) ==  0){
+					schedulePatient(msgqid, &buf);               /* Send show-up */
+					treatPatient(msgqid, &buf);                  /* Treat until recoved */
+					makeMeAvailable(mp);                         /* Look for another patient */
 				}
 			}
 			signal_rcvd = 0;
@@ -81,7 +84,7 @@ int main ( int argc, char *argv[] )
 		}
 		else
 		{
-			printf("%d:Queue is empty,zZzZz\n",getpid());
+			printf("%d:Queue is empty, zZzZz\n",getpid());
 			unlock(semid,&sb,1);
 			slept++;
 			sleep(DOCTOR_SLEEP_TIME);
@@ -144,12 +147,19 @@ void treatPatient(int msgqid, struct msgbuf* buf){
 		}
 	}while(localSeverity);
 }
+
+void acquirePatient(memory* mp, queue* q){
+	int myPatient;
+	while( (myPatient = dequeue(q)) == -1);
+	kill(myPatient,SIGUSR1);
+}
+
 void makeMeAvailable(memory* mp){
 	pid_t myPid = getpid();
 	for(int i=0; i<NUMBER_OF_DOCTORS;i++){
 		if(mp->doctors[i].pid == myPid)
 		{
-			mp->doctors[i].status = 0;
+			mp->doctors[i].myPatient = -1;
 			break;
 		}
 	}
@@ -159,6 +169,7 @@ void signal_catcher(int sig)
 {
 	if (sig == SIGTERM){
 		signal_rcvd = 1;
+		printf("Doc %d Terminated\n",getpid());
 	}
 	return;
 }

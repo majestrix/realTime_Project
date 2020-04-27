@@ -78,11 +78,11 @@ int main ( int argc, char *argv[] )
 	pthread_create(&forker, NULL, forker_function, argCombo);
 	pthread_create(&printer, NULL, thread_print_stats, NULL);
 	/*-----------------------------------------------------------------------------
-	 *  PARENT CODE
+	 *  PARENT WORK
 	 *-----------------------------------------------------------------------------*/
 
 	/* Monitor exit statuses*/
-	sleep(10);                              /* Patients head-start */
+
 	i = 0;
 	while(!terminate){
 		pid_t wpid = waitpid(-1, &status, WNOHANG);
@@ -93,38 +93,51 @@ int main ( int argc, char *argv[] )
 			{
 				case PATIENT_DIED:
 					deaths++;
-					patients[i] = 0;
 					break;
 				case PATIENT_RECOVERED:
 					recovers++;
-					patients[i] = 0;
 					break;
 				default:
 					break;
 			}
 		}
-		if(deaths > THRESHOLD)
+		if(deaths >= THRESHOLD)
 		{
-			printf("TERMINATED!\n");
+			printf("Termination condition achieved!\n");
 			printf("\033[0;36mPatients:%d, Recovered:%d, Dead:%d\033[0m\n",patientsNum,recovers,deaths);
 			terminate = 1;
 		}
 	}
 
+	printf ( "======================================================\n" );
+	printf("Cleaning up!\n");
+
+	/* Retire Doctors & Terminate Remaining/Stuck Patients*/
+	pid_t patientPid;
+	while( (patientPid = dequeue( &( mp->patientQueue))) != -1){
+		kill(patientPid,SIGKILL);
+	}
+	for(i = 0 ; i < NUMBER_OF_DOCTORS; i++){
+		pid_t docPid = mp->doctors[i].pid;
+		pid_t patientPid = mp->doctors[i].myPatient;
+		if(kill(docPid,SIGKILL) == 0){
+			msgctl(mp->doctors[i].msgqid, IPC_RMID, NULL);
+			printf("Terminated Doc %d\n",mp->doctors[i].pid);
+		}
+		if( patientPid != -1)
+			kill(patientPid,SIGKILL);
+	}
+
+	printf ( "======================================================\n" );
+	/* Print final results*/
 	pthread_join(forker,NULL);
 	pthread_join(printer,NULL);
-	
-//	/* Retire Doctors*/
-//	for(i = 0 ; i < NUMBER_OF_DOCTORS; i++){
-//		kill(doctors[i],SIGTERM);
-//		printf("Doc %d Terminated\n",doctors[i]);
-//	}
-
 	while(wait(&status) > 0);
-	printf("\033[0;36mPatients:%d, Recovered:%d, Dead:%d\033[0m\n",patientsNum,recovers,deaths);
+	printf("\033[0;33mFinal Results:\nPatients:%d, Recovered:%d, Dead:%d\033[0m\n",patientsNum,recovers,deaths);
 
-	printf("Contents of sharedmemory:\n");
-	printShmem(mp);
+//	printf("Contents of sharedmemory:\n");
+//	printShmem(mp);
+
 	/*-----------------------------------------------------------------------------
 	 *  Delete IPCS
 	 *-----------------------------------------------------------------------------*/
@@ -137,12 +150,11 @@ int main ( int argc, char *argv[] )
 		perror("parent -- remove sem");
 		return EXIT_FAILURE;
 	}
-	printf ( "Pid: %d \n", getpid() );
 	return EXIT_SUCCESS;
 }
 
 void* forker_function(void *args){
-	while(!terminate){
+	while(!terminate && patientsNum < MAX_Q){
 		if((patients[patientsNum++] = fork()) == -1){
 			perror("parent -- fork patient");
 			break;

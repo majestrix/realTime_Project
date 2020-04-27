@@ -42,9 +42,9 @@ Task|Progress
 -|-
 Shared-Memory|✔️
 Semaphore|✔️
-Patient Generation|❌
+Patient Generation|✔️
 Doctor Generation|✔️
-Monitor Children|❌
+Monitor Children|✔️
 Clean up|✔️
 
 ### Doctor
@@ -53,7 +53,7 @@ Task|Progress
 Shared-Memory|✔️
 Semaphore|✔️
 Message Queue|✔️
-Handling Patient|❌
+Handling Patient|✔️
 
 ### Patient
 Task|Progress

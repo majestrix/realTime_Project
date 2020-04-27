@@ -18,12 +18,12 @@
 #include <sys/msg.h>
 
 #define BUFF_SIZE         64
-#define FORK_NEW_PATIENT  2
-#define NUMBER_OF_DOCTORS 2
-#define DOCTOR_SLEEP_TIME 8
-#define PATIENT_WAIT_TIME 90
-#define THRESHOLD         10
-#define MAX_Q             THRESHOLD*2  /* Depends on threshold */
+#define FORK_NEW_PATIENT  1
+#define NUMBER_OF_DOCTORS 10
+#define DOCTOR_SLEEP_TIME 15
+#define PATIENT_WAIT_TIME 60
+#define THRESHOLD         20
+#define MAX_Q             200  /* Depends on threshold */
 
 #define PATIENT_DIED      10
 #define PATIENT_RECOVERED 20
@@ -36,14 +36,14 @@ union semun {
 
 typedef struct queueStruct 
 { 
-	int front, rear,count;
+	int front,rear,count;
 	int arr[MAX_Q]; 
 } queue; 
 
 typedef struct doctorstruct{
 	pid_t pid;
 	int   msgqid;
-	int   status;                           /* 1 for Busy */
+	pid_t myPatient;
 } doctor;
 
 typedef struct memstruct{

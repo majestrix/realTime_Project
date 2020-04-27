@@ -8,13 +8,13 @@ int healthCondition(int s, int pid);
 int healthSeverity(int fever,int cough,int breath ,int hyper,int heart,int cancer);
 int ageSeverity(int age);
 void signal_catcher(int sig, siginfo_t *si, void *ucontext);
-//void hopeless_signal(int sig);
+void terminate(int sig);
 int findDoctorByPid(pid_t pid,memory* mp);
 int initDrCommunication(int msgqid, struct msgbuf* buf);
 int waitForDr(int msgqid, struct msgbuf *buf);
 int acceptTreatment(int msgqid, struct msgbuf* buf,int severity);
 
-int   signal_rcvd = 0;
+int   signal_rcvd=0,term_sig=0;
 pid_t signal_pid;
 
 int main ( int argc, char *argv[] )
@@ -26,6 +26,8 @@ int main ( int argc, char *argv[] )
 	struct sembuf sb;
 	struct msgbuf buf;
 	struct sigaction act;
+
+	srand(time(NULL));
 
 	int fever  = isSevere( generateNumber(0,8) );
 	int cough  = isSevere( generateNumber(0,8) );
@@ -42,7 +44,6 @@ int main ( int argc, char *argv[] )
 	tok   = strtok(NULL," ");
 	semid = atoi(tok);
 
-	printf("Patient %d\n",getpid());
 	if(argc != 2)
 	{
 		printf("Usage ./patient [memory id] [semaphore id]\n");
@@ -78,9 +79,11 @@ int main ( int argc, char *argv[] )
 	severity  = healthSeverity(fever,cough,breath,hyper,heart,cancer);
 	severity += ageSeverity(age);
 	status = healthCondition(severity,getpid());
+	printf("Patient %d, Age: %d, Sev: %d\n",getpid(),age,severity);
 	if(status == PATIENT_DIED)
 	{
-		printf("Hopeless case!\n");
+		printf("\033[0;31mP:%d Died! -- Hopeless case.\033[0m\n", getpid());
+		removeData(&(mp->patientQueue), getpid());
 		return PATIENT_DIED;
 	}
 
@@ -92,6 +95,9 @@ int main ( int argc, char *argv[] )
 			if(status == PATIENT_DIED)
 			{
 				printf("\033[0;31mP:%d Died! -- Waited too long.\033[0m\n",getpid());
+				lock(semid,&sb,1);
+				removeData(&(mp->patientQueue), getpid());
+				unlock(semid,&sb,1);
 				if( shmdt(mp) == -1)
 				{
 					perror("doctor -- shmem detach");
@@ -102,6 +108,11 @@ int main ( int argc, char *argv[] )
 			status = healthCondition(severity++,getpid());
 			sleep(1);
 		}
+		if(term_sig == 1)
+		{
+			status = PATIENT_DIED;
+			break;
+		}
 		/* Signal Recieved! */
 		/* Communicate with Doctor */
 		msgqid = findDoctorByPid(signal_pid,mp);
@@ -109,7 +120,12 @@ int main ( int argc, char *argv[] )
 		{
 			/* die if Doctor took too long*/
 			if( (status = waitForDr(msgqid,&buf)) == PATIENT_DIED) /* Waits for show-up */
+			{
+				lock(semid,&sb,1);
+				removeData(&(mp->patientQueue), getpid());
+				unlock(semid,&sb,1);
 				break;
+			}
 			else
 			{
 				if( acceptTreatment(msgqid,&buf,severity) == 0 ){
@@ -139,7 +155,7 @@ int initDrCommunication(int msgqid, struct msgbuf* buf){
 	res =  msgsnd(msgqid, buf, len+1, 0);
 	if(res == -1)
 	{
-		perror("patient -- msg init");
+		fprintf(stderr, "%d:patient -- msginit1\n",getpid());
 		exit(EXIT_FAILURE);
 	}
 	printf("P:%d->D%d: imsick\n",getpid(),signal_pid);
@@ -186,7 +202,7 @@ int acceptTreatment(int msgqid, struct msgbuf* buf,int severity){
 			exit(EXIT_FAILURE);
 		}
 		if( msgrcv(msgqid,buf, sizeof(buf->mtext), 0, 0) == -1){
-			perror("doctor -- msginit");
+			perror("patient -- msginit2");
 			exit(EXIT_FAILURE);
 		}
 		localSeverity = atoi(buf->mtext);;
@@ -222,7 +238,7 @@ int healthSeverity(int fever,int cough,int breath ,int hyper,int heart,int cance
 }
 
 int healthCondition(int s, int pid){
-	if (s > 15 ){
+	if (s >= 15 ){
 		return PATIENT_DIED;
 	}
 	return 1;
@@ -238,10 +254,11 @@ void signal_catcher(int sig, siginfo_t *si, void *ucontext)
 	return;
 }
 
-void hopeless_signal(int sig){
-	if(sig == SIGUSR2)
+void terminate(int sig){
+	if(sig == SIGTERM)
 	{
-		exit(PATIENT_DIED);
+		signal_rcvd = 1;
+		term_sig    = 1;
 	}
 }
 
@@ -249,7 +266,7 @@ int findDoctorByPid(pid_t pid,memory* mp){
 	for(int i=0; i < NUMBER_OF_DOCTORS; i++){
 		if(mp->doctors[i].pid == pid)
 		{
-			mp->doctors[i].status = 1;
+			mp->doctors[i].myPatient = getpid();
 			return mp->doctors[i].msgqid;
 		}
 	}

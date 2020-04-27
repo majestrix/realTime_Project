@@ -94,7 +94,7 @@ void unlock(int semid, struct sembuf *sb, int semnum){
 void printShmem(memory *mp){
 	queue q = mp->patientQueue;
 	for(int i = 0; i < NUMBER_OF_DOCTORS; i++)
-		printf("%d:%d | ", mp->doctors[i].pid,mp->doctors[i].status);
+		printf("%d | ", mp->doctors[i].pid);
 	printf ( "\n" );
 	printQueue(&q);
 	printf ( "\n" );
